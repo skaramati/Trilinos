@@ -45,7 +45,7 @@
 
 #include <Panzer_STK_MeshFactory.hpp>
 #include <Panzer_STK_Interface.hpp>
-
+#define BF_enabled
 namespace panzer_stk {
 
 class STK_Interface;
@@ -118,6 +118,11 @@ protected:
 
    std::string edgeBlockName_;
    std::string faceBlockName_;
+
+   #ifdef BF_enabled
+   int isHost;
+   int numHost;
+   #endif
 };
 
 }

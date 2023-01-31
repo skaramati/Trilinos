@@ -84,12 +84,14 @@ Teuchos::RCP<STK_Interface> CubeTetMeshFactory::buildUncommitedMesh(stk::Paralle
 
    machRank_ = stk::parallel_machine_rank(parallelMach);
    machSize_ = stk::parallel_machine_size(parallelMach);
-
+   #ifndef BF_enabled
+    numHost = machSize_;
+   #endif
    if (xProcs_ == -1 && yProcs_ == -1 && zProcs_ == -1) {
      // copied from galeri
-     xProcs_ = yProcs_ = zProcs_ = Teuchos::as<int>(pow(Teuchos::as<double>(machSize_), 0.333334));
+     xProcs_ = yProcs_ = zProcs_ = Teuchos::as<int>(pow(Teuchos::as<double>(numHost), 0.333334));
 
-     if (xProcs_ * yProcs_ * zProcs_ != Teuchos::as<int>(machSize_))  {
+     if (xProcs_ * yProcs_ * zProcs_ != Teuchos::as<int>(numHost))  {
        // Simple method to find a set of processor assignments
        xProcs_ = yProcs_ = zProcs_ = 1;
 
@@ -97,7 +99,7 @@ Teuchos::RCP<STK_Interface> CubeTetMeshFactory::buildUncommitedMesh(stk::Paralle
        // processors.
        const int maxFactor = 50;
 
-       int ProcTemp = machSize_;
+       int ProcTemp = numHost;
        int factors[maxFactor];
        for (int jj = 0; jj < maxFactor; jj++) factors[jj] = 0;
        for (int jj = 2; jj < maxFactor; jj++) {
@@ -126,18 +128,21 @@ Teuchos::RCP<STK_Interface> CubeTetMeshFactory::buildUncommitedMesh(stk::Paralle
 
    } else if(xProcs_==-1) {
       // default x only decomposition
-      xProcs_ = machSize_;
+      xProcs_ = numHost;
       yProcs_ = 1;
       zProcs_ = 1;
    }
-   TEUCHOS_TEST_FOR_EXCEPTION(int(machSize_)!=xProcs_*yProcs_*zProcs_,std::logic_error,
+   TEUCHOS_TEST_FOR_EXCEPTION(int(numHost)!=xProcs_*yProcs_*zProcs_,std::logic_error,
                       "Cannot build CubeTetMeshFactory, the product of \"X Procs\", \"Y Procs\", and \"Z Procs\""
                       " must equal the number of processors.");
    procTuple_ = procRankToProcTuple(machRank_);
 
    // build meta information: blocks and side set setups
    buildMetaData(parallelMach,*mesh);
-
+   
+   std::cout << "Sara " << xProcs_ << " "<< yProcs_ << " " << zProcs_ << std::endl;
+   std::cout << "Sara t " << machRank_ << " " << procTuple_[0] << " " << procTuple_[1] << " "<<procTuple_[2]<<std::endl; 
+   
    mesh->addPeriodicBCs(periodicBCVec_);
    mesh->setBoundingBoxSearchFlag(useBBoxSearch_);
 
@@ -270,6 +275,20 @@ void CubeTetMeshFactory::initializeWithDefaults()
     */
    edgeBlockName_ = "line_2_"+panzer_stk::STK_Interface::edgeBlockString;
    faceBlockName_ = "tri_3_"+panzer_stk::STK_Interface::faceBlockString;
+
+   #ifdef BF_enabled
+   char processor_name[MPI_MAX_PROCESSOR_NAME];
+   int len;
+   MPI_Get_processor_name(processor_name, &len);
+   if(processor_name[len-28]=='b'){
+        isHost = 0;
+   }
+   else{
+        isHost = 1;
+   }
+   MPI_Allreduce(&isHost, &numHost, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   std::cout << "Sara numHost: " << numHost << std::endl;
+   #endif
 }
 
 void CubeTetMeshFactory::buildMetaData(stk::ParallelMachine /* parallelMach */, STK_Interface & mesh) const
@@ -476,7 +495,12 @@ std::pair<int,int> CubeTetMeshFactory::determineXElemSizeAndStart(int xBlock,uns
       nume  = minElements;
       start = extra*(minElements+1)+(xProcLoc-extra)*minElements;
    }
-
+   #ifdef BF_enabled
+      if(isHost==0){
+         nume  = 0;
+         start = xProcLoc*(minElements+1);
+      }
+   #endif
    return std::make_pair(start+nXElems_*xBlock,nume);
 }
 
