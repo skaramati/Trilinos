@@ -498,7 +498,7 @@ namespace MueLu {
 
     // Construct the set of triplets
     Teuchos::Array<Triplet<int,int> > gEdges(numProcs * maxLocal);
-    Teuchos::Array<bool> procWillAcceptPartition(numProcs, allSubdomainsAcceptPartitions);
+    Teuchos::Array<char> procWillAcceptPartition(numProcs, allSubdomainsAcceptPartitions);
     size_t k = 0;
     for (LO i = 0; i < gData.size(); i += 2) {
       int procNo = i/dataSize;              // determine the processor by its offset (since every processor sends the same amount)
@@ -540,6 +540,11 @@ namespace MueLu {
     // The reason it is done this way is that we don't need any extra communication, as we don't
     // need to know which parts are valid.
     if (numPartitions - numMatched > 0) {
+      #ifdef BF_enabled
+        if(k==0){
+        MPI_Allgather( &willAcceptPartition, 1, MPI_CHAR, static_cast<void*>(procWillAcceptPartition.getRawPtr()), 1, MPI_CHAR, *rawMpiComm);
+        }
+      #endif
       Teuchos::Array<char> partitionCounts(numPartitions, 0);
       for (typename std::map<int,int>::const_iterator it = match.begin(); it != match.end(); it++)
         partitionCounts[it->first] += 1;

@@ -66,7 +66,7 @@
 #include "MueLu_CloneRepartitionInterface_fwd.hpp"
 #include "MueLu_Utilities_fwd.hpp"
 #include "MueLu_PerfUtils_fwd.hpp"
-
+#define BF_enabled
 namespace MueLu {
 
   /*!
