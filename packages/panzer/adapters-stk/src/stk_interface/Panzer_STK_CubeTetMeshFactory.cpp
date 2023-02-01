@@ -140,9 +140,6 @@ Teuchos::RCP<STK_Interface> CubeTetMeshFactory::buildUncommitedMesh(stk::Paralle
    // build meta information: blocks and side set setups
    buildMetaData(parallelMach,*mesh);
    
-   std::cout << "Sara " << xProcs_ << " "<< yProcs_ << " " << zProcs_ << std::endl;
-   std::cout << "Sara t " << machRank_ << " " << procTuple_[0] << " " << procTuple_[1] << " "<<procTuple_[2]<<std::endl; 
-   
    mesh->addPeriodicBCs(periodicBCVec_);
    mesh->setBoundingBoxSearchFlag(useBBoxSearch_);
 
@@ -287,7 +284,6 @@ void CubeTetMeshFactory::initializeWithDefaults()
         isHost = 1;
    }
    MPI_Allreduce(&isHost, &numHost, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   std::cout << "Sara numHost: " << numHost << std::endl;
    #endif
 }
 
