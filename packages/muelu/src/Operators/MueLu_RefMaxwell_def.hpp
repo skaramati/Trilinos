@@ -441,6 +441,7 @@ namespace MueLu {
             repartheurParams.set("repartition: target rows per proc",   precList11_.get<int>("repartition: target rows per proc", defaultTargetRows));
             repartheurParams.set("repartition: min rows per thread",    precList11_.get<int>("repartition: target rows per thread", defaultTargetRows));
             repartheurParams.set("repartition: target rows per thread", precList11_.get<int>("repartition: target rows per thread", defaultTargetRows));
+            repartheurParams.set("repartition: num of procs",           precList11_.get<int>("repartition: num of procs", 0));
             repartheurParams.set("repartition: max imbalance",          precList11_.get<double>("repartition: max imbalance", 1.1));
             repartheurFactory->SetParameterList(repartheurParams);
 
@@ -469,6 +470,7 @@ namespace MueLu {
             repartheurParams.set("repartition: target rows per proc",   precList22_.get<int>("repartition: target rows per proc", defaultTargetRows));
             repartheurParams.set("repartition: min rows per thread",    precList22_.get<int>("repartition: target rows per thread", defaultTargetRows));
             repartheurParams.set("repartition: target rows per thread", precList22_.get<int>("repartition: target rows per thread", defaultTargetRows));
+            repartheurParams.set("repartition: num of procs",           precList22_.get<int>("repartition: num of procs", 0));
             // repartheurParams.set("repartition: max imbalance",        precList22_.get<double>("repartition: max imbalance", 1.1));
             repartheurFactory->SetParameterList(repartheurParams);
 
@@ -548,9 +550,14 @@ namespace MueLu {
             repartParams.set("repartition: print partition distribution", precList11_.get<bool>("repartition: print partition distribution", false));
             repartParams.set("repartition: remap parts", precList11_.get<bool>("repartition: remap parts", true));
             if (rebalanceStriding >= 1) {
-              bool acceptPart = (SM_Matrix_->getDomainMap()->getComm()->getRank() % rebalanceStriding) == 0;
+              /*bool acceptPart = (SM_Matrix_->getDomainMap()->getComm()->getRank() % rebalanceStriding) == 0;
               if (SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsAH*rebalanceStriding)
                 acceptPart = false;
+              repartParams.set("repartition: remap accept partition", acceptPart);*/
+              bool acceptPart = ((SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank()) % rebalanceStriding) == 0;
+              if (SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsAH*rebalanceStriding)
+                acceptPart = false;
+              
               repartParams.set("repartition: remap accept partition", acceptPart);
             }
             repartFactory->SetParameterList(repartParams);
@@ -776,11 +783,16 @@ namespace MueLu {
           repartParams.set("repartition: print partition distribution", precList22_.get<bool>("repartition: print partition distribution", false));
           repartParams.set("repartition: remap parts", precList22_.get<bool>("repartition: remap parts", true));
           if (rebalanceStriding >= 1) {
-            bool acceptPart = ((SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank()) % rebalanceStriding) == 0;
+            /*bool acceptPart = ((SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank()) % rebalanceStriding) == 0;
             if (SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsA22*rebalanceStriding)
               acceptPart = false;
             if (acceptPart)
               TEUCHOS_ASSERT(AH_.is_null());
+            repartParams.set("repartition: remap accept partition", acceptPart);*/
+            bool acceptPart = (SM_Matrix_->getDomainMap()->getComm()->getRank() % rebalanceStriding) == 0;
+            if (SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsA22*rebalanceStriding)
+              acceptPart = false;
+            
             repartParams.set("repartition: remap accept partition", acceptPart);
           } else
             repartParams.set("repartition: remap accept partition", AH_.is_null());

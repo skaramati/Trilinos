@@ -83,6 +83,7 @@ namespace MueLu {
     SET_VALID_ENTRY("repartition: target rows per proc");
     SET_VALID_ENTRY("repartition: min rows per thread");
     SET_VALID_ENTRY("repartition: target rows per thread");
+    SET_VALID_ENTRY("repartition: num of procs");
     SET_VALID_ENTRY("repartition: max imbalance");
 #undef  SET_VALID_ENTRY
 
@@ -125,9 +126,13 @@ namespace MueLu {
           LO     targetRowsPerProcess = pL.get<LO>    ("repartition: target rows per proc");
           LO     minRowsPerThread     = pL.get<LO>    ("repartition: min rows per thread");
           LO     targetRowsPerThread  = pL.get<LO>    ("repartition: target rows per thread");
+    const int    numP  =                pL.get<LO>    ("repartition: num of procs");
     const double nonzeroImbalance     = pL.get<double>("repartition: max imbalance");
     const bool   useMap               = pL.get<bool>  ("repartition: use map");
-
+    if ((currentLevel.GetLevelID() ==0) && (numP!=0)) {
+      Set(currentLevel, "number of partitions", numP);
+      return;
+    }
     int thread_per_mpi_rank = 1;
 #if defined(KOKKOS_ENABLE_OPENMP)
     using execution_space = typename Node::device_type::execution_space;

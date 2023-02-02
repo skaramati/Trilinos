@@ -344,6 +344,7 @@ namespace MueLu {
   "<Parameter name=\"repartition: target rows per proc\" type=\"int\" value=\"0\"/>"
   "<Parameter name=\"repartition: min rows per thread\" type=\"int\" value=\"0\"/>"
   "<Parameter name=\"repartition: target rows per thread\" type=\"int\" value=\"0\"/>"
+  "<Parameter name=\"repartition: num of procs\" type=\"int\" value=\"0\"/>"
   "<Parameter name=\"repartition: max imbalance\" type=\"double\" value=\"1.2\"/>"
   "<Parameter name=\"repartition: remap parts\" type=\"bool\" value=\"true\"/>"
   "<Parameter name=\"repartition: remap num values\" type=\"int\" value=\"4\"/>"
@@ -904,6 +905,8 @@ namespace MueLu {
          ("repartition: min rows per thread","repartition: min rows per thread")
       
          ("repartition: target rows per thread","repartition: target rows per thread")
+
+         ("repartition: num of procs","repartition: num of procs")
       
          ("repartition: max min ratio","repartition: max imbalance")
       
