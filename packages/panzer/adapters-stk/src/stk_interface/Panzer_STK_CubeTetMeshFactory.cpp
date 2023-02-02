@@ -522,6 +522,12 @@ std::pair<int,int> CubeTetMeshFactory::determineYElemSizeAndStart(int yBlock,uns
       nume  = minElements;
       start = extra*(minElements+1)+(yProcLoc-extra)*minElements;
    }
+   #ifdef BF_enabled
+      if(isHost==0){
+         nume  = 0;
+         start = yProcLoc*(minElements+1);
+      }
+   #endif
 
    return std::make_pair(start+nYElems_*yBlock,nume);
 }
@@ -547,7 +553,12 @@ std::pair<int,int> CubeTetMeshFactory::determineZElemSizeAndStart(int zBlock,uns
       nume  = minElements;
       start = extra*(minElements+1)+(zProcLoc-extra)*minElements;
    }
-
+   #ifdef BF_enabled
+      if(isHost==0){
+         nume  = 0;
+         start = zProcLoc*(minElements+1);
+      }
+   #endif
    return std::make_pair(start+nZElems_*zBlock,nume);
 }
 
