@@ -1,0 +1,94 @@
+#path=/global/home/users/skaramati/snic/Trilinos/USERSCRATCH/trilonos/build_x86_1/packages/panzer/mini-em/example/BlockPrec
+path=/global/home/users/skaramati/snic/Trilinos/USERSCRATCH/trilonos/build_x86_openMP/packages/panzer/mini-em/example/BlockPrec
+
+pathbf2=/global/home/users/skaramati/snic/Trilinos/USERSCRATCH/trilonos/build_arm_bf2/packages/panzer/mini-em/example/BlockPrec
+pathbf3=/global/home/users/skaramati/snic/Trilinos/USERSCRATCH/trilonos/build_arm_bf3_openMP/packages/panzer/mini-em/example/BlockPrec
+#pathbf3=/global/home/users/skaramati/snic/Trilinos/USERSCRATCH/trilonos/build_arm_bf3/packages/panzer/mini-em/example/BlockPrec
+
+pathf=/global/home/users/skaramati/snic/Trilinos/USERSCRATCH/trilonos
+pathinput=/global/home/users/skaramati/snic/Trilinos/packages/panzer/mini-em/example/BlockPrec
+
+# ssh thor003 export OMP_NUM_THREADS=16
+# ssh thor004 export OMP_NUM_THREADS=16
+# ssh thor005 export OMP_NUM_THREADS=16
+# ssh thor006 export OMP_NUM_THREADS=16
+# ssh thor007 export OMP_NUM_THREADS=16
+# ssh thor008 export OMP_NUM_THREADS=16
+# ssh thor009 export OMP_NUM_THREADS=16
+# ssh thor010 export OMP_NUM_THREADS=16
+
+# ssh thorbf3a003 export OMP_NUM_THREADS=16
+# ssh thorbf3a004 export OMP_NUM_THREADS=16
+# ssh thorbf3a005 export OMP_NUM_THREADS=16
+# ssh thorbf3a010 export OMP_NUM_THREADS=16
+# ssh thorbf3a011 export OMP_NUM_THREADS=16
+# ssh thorbf3a012 export OMP_NUM_THREADS=16
+# ssh thorbf3a013 export OMP_NUM_THREADS=16
+# ssh thorbf3a014 export OMP_NUM_THREADS=16
+
+#for np11 in 32; do
+    for np11 in 128; do
+        for xyz in 180; do
+            for mcs1 in 4000; do
+                for tg1 in 8000; do
+                    for mcs2 in 5000; do
+                        for tg2 in 8000; do
+                            for mg in 100; do
+                                for d1 in 2; do
+                                    for d2 in 2; do
+                                        np22=256   #$((np22))
+                                        echo ${mcs1}, ${tg1}
+                                        sed "s/XYZ/${xyz}/g" maxwell-large-temp.xml > maxwell-large.xml
+                                        sed "s/np11/${np11}/g; s/np22/${np22}/g; s/mcs1/${mcs1}/g; s/tg1/${tg1}/g; s/mcs2/${mcs1}/g; s/tg2/${tg1}/g; s/mg/${mg}/g; s/d1/${d1}/g; s/d2/${d2}/g;" solverMueLuRefMaxwell-temp.xml > solverMueLuRefMaxwell.xml 
+                                        mpirun -np ${np22} -host thor025:32,thor026:32,thor027:32,thor028:32,thor029:32,thor030:32,thor031:32,thor032:32 --map-by core --bind-to core $path/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=10 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml :  -np ${np11} -host thorbf3a025:16,thorbf3a026:16,thorbf3a027:16,thorbf3a028:16,thorbf3a029:16,thorbf3a030:16,thorbf3a031:16,thorbf3a032:16 --map-by core --bind-to core $pathbf3/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=10 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml > ./results/results_103123/miniEM_${xyz}_deg1_${np22}H_${np11}BF_${np22}H_d${d1}_d${d2}_msc${mcs1}_msc${mcs1}_tg${tg1}_tg${tg1}_mg250_mg1000_MPI_2.txt
+                                        #mpirun -np ${np22} -host thor006:32,thor007:32,thor008:32,thor009:32,thor010:32,thor011:32,thor012:32,thor013:32 --map-by core -x OMP_NUM_THREADS=1 -x OMP_PROC_BIND=true $path/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=10 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml :  -np ${np11} -host thorbf3a006:16,thorbf3a007:16,thorbf3a008:16,thorbf3a009:16,thorbf3a010:16,thorbf3a011:16,thorbf3a012:16,thorbf3a013:16 --map-by core -x OMP_NUM_THREADS=1 -x OMP_PROC_BIND=true $pathbf3/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=10 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml > ./results/results_103123/miniEM_${xyz}_deg1_${np22}H_${np11}BF_${np22}H_d${d1}_d${d2}_msc${mcs1}_msc${mcs1}_tg${tg1}_tg${tg1}_mg250_mg1000_MPI.txt
+                                        #: -np ${np11} -hostfile nicfile3 --map-by node -bind-to cpu-list $pathbf3/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=10 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml  > ./results/results_100523/miniEM_${xyz}_deg1_${np22}H_${np11}BF_${np22}H_d${d1}_d${d2}_msc${mcs1}_msc${mcs1}_tg${tg1}_tg${tg1}_mg250_mg1000_2_openMP.txt
+                                        #: -np ${np22} -hostfile nicfile3 -bind-to core --map-by core $pathbf3/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=10 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml > ./results/results_082423/miniEM_${xyz}_deg1_${np22}H_${np11}H_${np22}BF3_d${d1}_d${d2}_msc${mcs1}_msc${mcs2}_tg${tg1}_tg${tg2}_mg250_mg1000_2.txt
+                                #: -np 4 -hostfile nicfile2 $pathbf2/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=10 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml > ./results/results_080923/miniEM_${xyz}_deg1_${np22}H_${np11}BF23_${np22}H_d${d1}_d${d2}_msc${mcs}_msc${mcs}_tg${tg}_tg500_mg${mg}_mg100.txt
+            #: -np ${np11} -bind-to core --map-by core -hostfile nicfile $pathbf/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=10 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml > ./results/results_080123/miniEM_${xyz}_deg1_${np22}H_${np11}BF_${np22}H_${mcs}_1000_1500.txt
+            #> ./results/results_071823/miniEM_${xyz}_deg1_${np22}H_${np11}BF_${np22}H_15000_3750_4.txt
+            #: -np $np11 -bind-to core -hostfile nicfile $pathbf/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=3 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml > ./results/results_052123/P60_${np22}H_${np22}H_${np11}BF.txt
+            #mpirun -np 16 -bind-to core -host thorbf3a003:16 $pathbf/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=20 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml --resetSolver --test-name="MiniEM 3D RefMaxwell Reuse" > ./testcode/test_BF_${np11}_${np22}.txt
+                                    done
+                                done
+                            done
+                        done
+                    done
+                done
+            done
+        done
+    done
+#done
+#--resetSolver --test-name="MiniEM 3D RefMaxwell Reuse"
+# for np in 8; do
+#     for i in $(seq 4 ${np}); do
+#         #for j in $(seq 16 16); do
+#             echo ${np} $i
+#             sed "s/np11/$i/g; s/np22/$i/g" solverMueLuRefMaxwell-temp.xml > solverMueLuRefMaxwell.xml
+#             mpirun -np $np -bind-to hwthread -host thor007:32 $path/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=3 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml : -np $i -bind-to hwthread -host thorbf3a007:16,thorbf3a008:16 $pathbf/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=3 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml > ./results_032223/test_20nBF3_${np}_${i}_${i}.txt
+#             #> ./results030923/test_HBF_${np}_${i}_${j}.txt
+#             #mpirun -np ${np} -hostfile $pathf/nicfile $pathbf/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=3 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml 
+#        #done 
+       
+#     done
+# done
+
+# for np in 16; do
+#     for i in $(seq 4 16); do
+#         for j in $(seq 4 16); do
+#         echo ${np} $i
+#             sed "s/np11/$i/g; s/np22/$i/g" solverMueLuRefMaxwell-temp.xml > solverMueLuRefMaxwell.xml
+#             mpirun -np ${np} -hostfile $pathf/hostfile $path/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=20 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml --resetSolver --test-name="MiniEM 3D RefMaxwell Reuse"  > ./results022123/test_reuse_H_${np}_${i}_${i}.txt
+       
+#         done
+#     done
+# done
+
+# for np in 8; do
+#     for i in $(seq 1 ${np}); do
+#         echo $i
+#         r=$((np - i))
+#         sed "s/np11/$i/g; s/np22/$r/g" solverMueLuRefMaxwell-temp.xml > solverMueLuRefMaxwell.xml
+#         mpirun -np ${np} -hostfile $pathf/nicfile $pathbf/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=3 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml  > ./results020323/test_BF_${np}_${i}_${r}.txt
+#     done
+# done  

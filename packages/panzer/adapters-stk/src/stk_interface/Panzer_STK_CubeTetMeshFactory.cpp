@@ -81,13 +81,13 @@ Teuchos::RCP<STK_Interface> CubeTetMeshFactory::buildUncommitedMesh(stk::Paralle
    PANZER_FUNC_TIME_MONITOR("panzer::CubeTetMeshFactory::buildUncomittedMesh()");
 
    RCP<STK_Interface> mesh = rcp(new STK_Interface(3));
-
+   zProcs_BF = 0;
    machRank_ = stk::parallel_machine_rank(parallelMach);
    machSize_ = stk::parallel_machine_size(parallelMach);
    #ifndef BF_enabled
     numHost = machSize_;
    #endif
-   if (xProcs_ == -1 && yProcs_ == -1 && zProcs_ == -1) {
+    if (xProcs_ == -1 && yProcs_ == -1 && zProcs_ == -1) {
      // copied from galeri
      xProcs_ = yProcs_ = zProcs_ = Teuchos::as<int>(pow(Teuchos::as<double>(numHost), 0.333334));
 
@@ -132,11 +132,94 @@ Teuchos::RCP<STK_Interface> CubeTetMeshFactory::buildUncommitedMesh(stk::Paralle
       yProcs_ = 1;
       zProcs_ = 1;
    }
-   TEUCHOS_TEST_FOR_EXCEPTION(int(numHost)!=xProcs_*yProcs_*zProcs_,std::logic_error,
+   /*#else
+    numBF = machSize_ - numHost;
+    if (xProcs_ == -1 && yProcs_ == -1 && zProcs_ == -1) {
+     // copied from galeri
+     xProcs_ = yProcs_ = zProcs_ = Teuchos::as<int>(pow(Teuchos::as<double>(numBF), 0.333334));
+
+     if (xProcs_ * yProcs_ * zProcs_ != Teuchos::as<int>(numBF))  {
+       // Simple method to find a set of processor assignments
+       xProcs_ = yProcs_ = zProcs_ = 1;
+
+       // This means that this works correctly up to about maxFactor^3
+       // processors.
+       const int maxFactor = 50;
+
+       int ProcTemp = numBF;
+       int factors[maxFactor];
+       for (int jj = 0; jj < maxFactor; jj++) factors[jj] = 0;
+       for (int jj = 2; jj < maxFactor; jj++) {
+         bool flag = true;
+         while (flag) {
+           int temp = ProcTemp/jj;
+           if (temp*jj == ProcTemp) {
+             factors[jj]++;
+             ProcTemp = temp;
+
+           } else {
+             flag = false;
+           }
+         }
+       }
+       xProcs_ = ProcTemp;
+       for (int jj = maxFactor-1; jj > 0; jj--) {
+         while (factors[jj] != 0) {
+           if      ((xProcs_ <= yProcs_) && (xProcs_ <= zProcs_)) xProcs_ = xProcs_*jj;
+           else if ((yProcs_ <= xProcs_) && (yProcs_ <= zProcs_)) yProcs_ = yProcs_*jj;
+           else                               zProcs_ = zProcs_*jj;
+           factors[jj]--;
+         }
+       }
+     }
+     zProcs_BF = zProcs_;
+     zProcs_ = zProcs_*3;
+   } else if(xProcs_==-1) {
+      // default x only decomposition
+      xProcs_ = numBF*3;
+      yProcs_ = 1;
+      zProcs_ = 1;
+   }
+   #endif*/
+   std::cout << "Sara Size: " << xProcs_ << " " << yProcs_ << " " << zProcs_ <<std::endl;
+    TEUCHOS_TEST_FOR_EXCEPTION(int(numHost)!=xProcs_*yProcs_*zProcs_,std::logic_error,
                       "Cannot build CubeTetMeshFactory, the product of \"X Procs\", \"Y Procs\", and \"Z Procs\""
                       " must equal the number of processors.");
    procTuple_ = procRankToProcTuple(machRank_);
-
+   /*std::vector<int> nodes_in_each_dimension(3);
+   
+   // Find the maximum value for each dimension
+   MPI_Allreduce(&procTuple_[0], &nodes_in_each_dimension[0], 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+   MPI_Allreduce(&procTuple_[1], &nodes_in_each_dimension[1], 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+   MPI_Allreduce(&procTuple_[2], &nodes_in_each_dimension[2], 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+   // Increment the maximum value for each dimension to get the number of nodes in each dimension
+   nodes_in_each_dimension[0]++;
+   nodes_in_each_dimension[1]++;
+   nodes_in_each_dimension[2]++;
+   // Calculate the total number of nodes in the grid
+   int total_nodes = (nodes_in_each_dimension[0] * nodes_in_each_dimension[1] * nodes_in_each_dimension[2]);
+   xProcs_BF = nodes_in_each_dimension[0]-xProcs_;
+   yProcs_BF = nodes_in_each_dimension[1]-yProcs_;
+   zProcs_BF = nodes_in_each_dimension[2]-zProcs_;
+   xProcs_H = xProcs_;
+   yProcs_H = yProcs_;
+   zProcs_H = zProcs_;
+   xProcs_ = nodes_in_each_dimension[0];
+   yProcs_ = nodes_in_each_dimension[1];
+   zProcs_ = nodes_in_each_dimension[2];
+   ratio = int(xProcs_BF!=0)+int(yProcs_BF!=0)+int(zProcs_BF!=0);
+   
+   if(machRank_==0){
+      std::cout << "ratio: " << ratio << std::endl;
+      std::cout << "#BF in dimension[0]: " << xProcs_BF << "    Host in dimension[0]:  " << xProcs_H << std::endl;
+      std::cout << "#BF in dimension[1]: " << yProcs_BF << "    Host in dimension[1]:  " << yProcs_H << std::endl;
+      std::cout << "#BF in dimension[2]: " << zProcs_BF << "    Host in dimension[2]:  " << zProcs_H << std::endl;
+   }
+   if(total_nodes!=machSize_){
+      std::cout << "SARA ERRROOOORRRRR!";
+      
+   }
+   */
    // build meta information: blocks and side set setups
    buildMetaData(parallelMach,*mesh);
    
@@ -277,7 +360,7 @@ void CubeTetMeshFactory::initializeWithDefaults()
    char processor_name[MPI_MAX_PROCESSOR_NAME];
    int len;
    MPI_Get_processor_name(processor_name, &len);
-   if(processor_name[len-28]=='b'){
+   if(processor_name[4]=='b'){
         isHost = 0;
    }
    else{
@@ -537,9 +620,20 @@ std::pair<int,int> CubeTetMeshFactory::determineZElemSizeAndStart(int zBlock,uns
    // int start = zBlock*nZElems_;
    // return std::make_pair(start,nZElems_);
    std::size_t zProcLoc = procTuple_[2];
-   unsigned int minElements = nZElems_/size;
-   unsigned int extra = nZElems_ - minElements*size;
-
+   /*#ifdef BF_enabled
+      size  = 2*size/3;
+      double ratio = 1;
+      double B = 2.0/(2.0*ratio+1.0);
+      unsigned int minElements = B*ratio*nZElems_/size;
+      
+      unsigned int minElements_BF = B*nZElems_/size;
+      std::cout << "SARA Z e: " << size << " " << nZElems_ << " " << minElements << " " << minElements_BF << std::endl;
+      unsigned int extra = nZElems_ - minElements*(size) - minElements_BF*(size/2);
+   #else*/
+      unsigned int minElements = nZElems_/size;
+      unsigned int minElements_BF = 0;
+      unsigned int extra = nZElems_ - minElements*size;
+  // #endif
    TEUCHOS_ASSERT(minElements>0);
 
    // first "extra" elements get an extra column of elements
@@ -553,6 +647,26 @@ std::pair<int,int> CubeTetMeshFactory::determineZElemSizeAndStart(int zBlock,uns
       nume  = minElements;
       start = extra*(minElements+1)+(zProcLoc-extra)*minElements;
    }
+   /*if(zProcLoc<extra) {
+      if(zProcLoc < size){
+         nume  = minElements+1;
+         start = zProcLoc*(minElements+1);
+      }else{
+         nume  = minElements_BF+1;
+         start = size*(minElements+1) + (zProcLoc-size)*(minElements_BF+1);
+      }
+   }
+   else {
+      if(zProcLoc < size){
+         nume  = minElements;
+         start = extra*(minElements+1)+(zProcLoc-extra)*minElements;
+      }else{
+         nume  = minElements_BF;
+         if(extra < size) start = extra*(minElements+1)+(size-extra)*minElements+(zProcLoc-size)*minElements_BF;
+         if(extra >= size) start = size*(minElements+1)+(extra-size)*(minElements_BF+1)+(zProcLoc-extra)*minElements_BF;
+       
+      }
+   }*/
    #ifdef BF_enabled
       if(isHost==0){
          nume  = 0;

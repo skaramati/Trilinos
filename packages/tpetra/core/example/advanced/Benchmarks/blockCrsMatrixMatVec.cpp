@@ -309,10 +309,10 @@ setCmdLineOpts (CmdLineOpts& opts,
 {
   // Set default values of command-line options.
 
-  opts.numTrials = 200;
-  opts.lclNumRows = 10000;
-  opts.numEntPerRow = 10;
-  opts.blockSize = 7;
+  opts.numTrials = 1; //200;
+  opts.lclNumRows = 4; //10000;
+  opts.numEntPerRow = 2; //10;
+  opts.blockSize = 4; //7;
   opts.runTest = false;
 
   clp.setOption ("numTrials", &(opts.numTrials), "Number of trials per "
@@ -630,7 +630,8 @@ main (int argc, char* argv[])
     auto A = getTpetraBlockCrsMatrix (out, G, opts);
     Tpetra::Vector<> X (A->getDomainMap ());
     Tpetra::Vector<> Y (A->getRangeMap ());
-
+    A->describe(out, Teuchos::VERB_EXTREME);
+    return 0;
     // Fill X with values that don't increase the max-norm of results.
     // That way, repeated mat-vecs won't overflow.  This matters
     // because some processors do a silly thing and handle Inf or NaN

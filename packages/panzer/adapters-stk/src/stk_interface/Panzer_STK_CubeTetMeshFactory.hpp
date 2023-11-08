@@ -119,9 +119,12 @@ protected:
    std::string edgeBlockName_;
    std::string faceBlockName_;
 
+   mutable unsigned int numHost, numBF;
+   mutable int zProcs_BF;
+   mutable int xProcs_H, yProcs_H, zProcs_H;
+   mutable unsigned int ratio;
    #ifdef BF_enabled
    int isHost;
-   int numHost;
    #endif
 };
 

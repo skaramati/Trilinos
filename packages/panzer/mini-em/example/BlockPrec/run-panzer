@@ -1,0 +1,12 @@
+path=/global/home/users/skaramati/snic/Trilinos/USERSCRATCH/trilonos/build_x86_1/packages/panzer/mini-em/example/BlockPrec
+pathbf=/global/home/users/skaramati/snic/Trilinos/USERSCRATCH/trilonos/build_arm_1/packages/panzer/mini-em/example/BlockPrec
+pathf=/global/home/users/skaramati/snic/Trilinos/USERSCRATCH/trilonos
+pathinput=/global/home/users/skaramati/snic/Trilinos/packages/panzer/mini-em/example/BlockPrec
+
+mpirun -np 32 -host thor017:32 $path/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=3 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml 
+
+#mpirun -np 2 -hostfile $pathf/hostfile -mca coll_hcoll_enable 0 $path/PanzerMiniEM_BlockPrec.exe --stacked-timer --solverFile=$pathinput/solverMueLuRefMaxwell.xml --numTimeSteps=3 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml 
+#> test_bfH_16_8_8.txt
+#mpirun -np 16 -hostfile $pathf/hostfile $path/PanzerMiniEM_BlockPrec.exe --stacked-timer --solver=MueLu-RefMaxwell --numTimeSteps=20 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml --resetSolver --test-name="MiniEM 3D RefMaxwell Reuse"  : -np 8 -hostfile $pathf/nicfile $pathbf/PanzerMiniEM_BlockPrec.exe --stacked-timer --solver=MueLu-RefMaxwell --numTimeSteps=20 --linAlgebra=Tpetra --inputFile=$pathinput/maxwell-large.xml --resetSolver --test-name="MiniEM 3D RefMaxwell Reuse" > test_bf_H_reuse.txt
+
+#: -np 32 -hostfile $pathf/nicfile  $pathbf/PanzerMiniEM_BlockPrec.exe --solverFile=$path/solverMueLuRefMaxwell.xml --inputFile=$path/maxwell.xml --x-elements=64 --y-elements=64 --z-elements=64 > testhbf_64_64_64_32_32.txt

@@ -1232,6 +1232,7 @@ namespace MueLu {
     std::string outstr;
     if (comm->getRank() == root && verbLevel & (Statistics0 | Test)) {
       std::vector<Xpetra::global_size_t> nnzPerLevel;
+      std::vector<Xpetra::global_size_t> maxNnzPerRow;
       std::vector<Xpetra::global_size_t> rowsPerLevel;
       std::vector<int>                   numProcsPerLevel;
       bool aborted = false;
@@ -1253,6 +1254,7 @@ namespace MueLu {
         LO storageblocksize=Am->GetStorageBlockSize();
         Xpetra::global_size_t nnz = Am->getGlobalNumEntries()*storageblocksize*storageblocksize;
         nnzPerLevel     .push_back(nnz);
+        maxNnzPerRow    .push_back(Am->getGlobalMaxNumRowEntries());
         rowsPerLevel    .push_back(Am->getGlobalNumRows()*storageblocksize);
         numProcsPerLevel.push_back(Am->getRowMap()->getComm()->getSize());
       }
@@ -1293,9 +1295,11 @@ namespace MueLu {
         int rowspacer = 2; while (tt != 0) { tt /= 10; rowspacer++; }
         tt = nnzPerLevel[0];
         int nnzspacer = 2; while (tt != 0) { tt /= 10; nnzspacer++; }
+        tt = maxNnzPerRow[0];
+        int nnzMaxspacer = 2; while (tt != 0) { tt /= 10; nnzMaxspacer++; }
         tt = numProcsPerLevel[0];
         int npspacer = 2;  while (tt != 0) { tt /= 10; npspacer++; }
-        oss  << "level " << std::setw(rowspacer) << " rows " << std::setw(nnzspacer) << " nnz " << " nnz/row" << std::setw(npspacer) << "  c ratio" << "  procs" << std::endl;
+        oss  << "level " << std::setw(rowspacer) << " rows " << std::setw(nnzspacer) << " nnz " << " nnz/row" << std::setw(npspacer) << "  c ratio" << "  procs" << std::setw(nnzMaxspacer) <<  "  max nnz/Row"<<std::endl;
         for (size_t i = 0; i < nnzPerLevel.size(); ++i) {
           oss << "  " << i << "  ";
           oss << std::setw(rowspacer) << rowsPerLevel[i];
@@ -1304,7 +1308,8 @@ namespace MueLu {
           oss << std::setw(9) << as<double>(nnzPerLevel[i]) / rowsPerLevel[i];
           if (i) oss << std::setw(9) << as<double>(rowsPerLevel[i-1])/rowsPerLevel[i];
           else   oss << std::setw(9) << "     ";
-          oss << "    " << std::setw(npspacer) << numProcsPerLevel[i] << std::endl;
+          oss << "    " << std::setw(npspacer) << numProcsPerLevel[i] ;
+          oss << std::setw(nnzMaxspacer) << maxNnzPerRow[i] << std::endl;
         }
         oss << std::endl;
         for (int i = 0; i < GetNumLevels(); ++i) {

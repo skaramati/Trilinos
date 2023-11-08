@@ -108,6 +108,7 @@
 #include <Xpetra_ThyraLinearOp.hpp>
 #endif
 
+#define BF_enabled
 
 namespace MueLu {
 
@@ -550,15 +551,25 @@ namespace MueLu {
             repartParams.set("repartition: print partition distribution", precList11_.get<bool>("repartition: print partition distribution", false));
             repartParams.set("repartition: remap parts", precList11_.get<bool>("repartition: remap parts", true));
             if (rebalanceStriding >= 1) {
+              #ifndef BF_enabled
+              bool acceptPart = (SM_Matrix_->getDomainMap()->getComm()->getRank() % rebalanceStriding) == 0;
+              if (SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsAH*rebalanceStriding)
+                acceptPart = false;
+              repartParams.set("repartition: remap accept partition", acceptPart);
+            #else
+              
+              //(2,2) to BF
               /*bool acceptPart = (SM_Matrix_->getDomainMap()->getComm()->getRank() % rebalanceStriding) == 0;
               if (SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsAH*rebalanceStriding)
                 acceptPart = false;
-              repartParams.set("repartition: remap accept partition", acceptPart);*/
+              repartParams.set("repartition: remap accept partition", acceptPart);
+              */
               bool acceptPart = ((SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank()) % rebalanceStriding) == 0;
               if (SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsAH*rebalanceStriding)
                 acceptPart = false;
               
               repartParams.set("repartition: remap accept partition", acceptPart);
+              #endif
             }
             repartFactory->SetParameterList(repartParams);
             // repartFactory->SetFactory("number of partitions", repartheurFactory);
@@ -746,7 +757,9 @@ namespace MueLu {
           coarseLevel.AddKeepFlag("RAP reuse data", rapFact.get());
           coarseLevel.Set<Teuchos::RCP<Teuchos::ParameterList> >("RAP reuse data", A22_RAP_reuse_data_, rapFact.get());
         }
-
+        #ifdef BF_enabled
+        doRebalancing = false;
+        #endif
 #ifdef HAVE_MPI
         if (doRebalancing) {
 
@@ -783,17 +796,27 @@ namespace MueLu {
           repartParams.set("repartition: print partition distribution", precList22_.get<bool>("repartition: print partition distribution", false));
           repartParams.set("repartition: remap parts", precList22_.get<bool>("repartition: remap parts", true));
           if (rebalanceStriding >= 1) {
-            /*bool acceptPart = ((SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank()) % rebalanceStriding) == 0;
+            #ifndef BF_enabled
+              bool acceptPart = ((SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank()) % rebalanceStriding) == 0;
             if (SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsA22*rebalanceStriding)
               acceptPart = false;
             if (acceptPart)
               TEUCHOS_ASSERT(AH_.is_null());
-            repartParams.set("repartition: remap accept partition", acceptPart);*/
+            repartParams.set("repartition: remap accept partition", acceptPart);
+            #else
             bool acceptPart = (SM_Matrix_->getDomainMap()->getComm()->getRank() % rebalanceStriding) == 0;
             if (SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsA22*rebalanceStriding)
               acceptPart = false;
             
             repartParams.set("repartition: remap accept partition", acceptPart);
+            
+            //(2,2) to BF
+            /*bool acceptPart = ((SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank()) % rebalanceStriding) == 0;
+              if (SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsA22*rebalanceStriding)
+                acceptPart = false;
+              
+              repartParams.set("repartition: remap accept partition", acceptPart);*/
+            #endif
           } else
             repartParams.set("repartition: remap accept partition", AH_.is_null());
           repartFactory->SetParameterList(repartParams);
@@ -839,9 +862,14 @@ namespace MueLu {
             coarseLevel.Request("AP reuse data", rapFact.get());
             coarseLevel.Request("RAP reuse data", rapFact.get());
           }
-
-          A22_ = coarseLevel.Get< RCP<Matrix> >("A", rapFact.get());
-
+        
+          RCP<Matrix> temp2;
+          temp2 = coarseLevel.Get< RCP<Matrix> >("A", rapFact.get());
+          RCP<const Map> map = temp2->getRowMap()->removeEmptyProcesses();
+          temp2->removeEmptyProcessesInPlace(map);
+          if (!temp2.is_null() && temp2->getRowMap().is_null())
+          temp2 = Teuchos::null;
+          A22_ = temp2;
           if (enable_reuse_) {
             if (coarseLevel.IsAvailable("AP reuse data", rapFact.get()))
               A22_AP_reuse_data_ = coarseLevel.Get< RCP<ParameterList> >("AP reuse data", rapFact.get());
@@ -2232,7 +2260,7 @@ namespace MueLu {
         }
       }
     }
-
+    SM_Matrix_->getRowMap()->getComm()->barrier();
     {
       RCP<Teuchos::TimeMonitor> tmSubSolves = getTimer("MueLu RefMaxwell: subsolves");
 
@@ -2393,7 +2421,7 @@ namespace MueLu {
                                                                   Teuchos::ETransp /* mode */,
                                                                   Scalar /* alpha */,
                                                                   Scalar /* beta */) const {
-
+    SM_Matrix_->getRowMap()->getComm()->barrier();
     RCP<Teuchos::TimeMonitor> tm = getTimer("MueLu RefMaxwell: solve");
 
     // make sure that we have enough temporary memory

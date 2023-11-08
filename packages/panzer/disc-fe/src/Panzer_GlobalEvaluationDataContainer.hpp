@@ -53,8 +53,8 @@ namespace panzer {
 
 class GlobalEvaluationDataContainer {
 public:
-   typedef std::unordered_map<std::string,Teuchos::RCP<GlobalEvaluationData> >::const_iterator const_iterator;
-   typedef std::unordered_map<std::string,Teuchos::RCP<GlobalEvaluationData> >::iterator iterator;
+   typedef std::map<std::string,Teuchos::RCP<GlobalEvaluationData> >::const_iterator const_iterator;
+   typedef std::map<std::string,Teuchos::RCP<GlobalEvaluationData> >::iterator iterator;
 
    /** Add a data object to be used in evaluation loop.
      */
@@ -85,7 +85,7 @@ public:
    iterator end() { return lookupTable_.end(); }
 
 private:
-   std::unordered_map<std::string,Teuchos::RCP<GlobalEvaluationData> > lookupTable_;
+   std::map<std::string,Teuchos::RCP<GlobalEvaluationData> > lookupTable_;
 };
 
 }

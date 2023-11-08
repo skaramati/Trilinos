@@ -171,7 +171,7 @@
 
                 <Parameter name="smoother: type" type="string" value="CHEBYSHEV"/>
                 <ParameterList name="smoother: params">
-                  <Parameter name="chebyshev: degree" type="int" value="1"/>
+                  <Parameter name="chebyshev: degree" type="int" value="2"/>
                   <Parameter name="chebyshev: ratio eigenvalue" type="double" value="20.0"/>
                   <Parameter name="chebyshev: eigenvalue max iterations" type="int" value="100"/>
                 </ParameterList>
@@ -196,7 +196,7 @@
                 <ParameterList name="refmaxwell: 11list">
                   <Parameter name="use kokkos refactor" type="bool" value="false"/>
                   <Parameter name="verbosity" type="string" value="extreme"/>
-                  <Parameter name="coarse: max size" type="int" value="4000"/>
+                  <Parameter name="coarse: max size" type="int" value="2500"/>
                   <Parameter name="number of equations" type="int" value="3"/>
                   <Parameter name="multigrid algorithm" type="string" value="unsmoothed"/>
 
@@ -239,8 +239,8 @@
                   <Parameter name="repartition: enable" type="bool" value="true"/>
                   <Parameter name="repartition: partitioner" type="string" value="zoltan2"/>
                   <Parameter name="repartition: start level" type="int" value="1"/>
-                  <Parameter name="repartition: num of procs" type="int" value="128"/>
-                  <Parameter name="repartition: target rows per thread" type="int" value="8000"/>
+                  <Parameter name="repartition: num of procs" type="int" value="0"/>
+                  <Parameter name="repartition: target rows per thread" type="int" value="3750"/>
                   <Parameter name="repartition: min rows per thread" type="int" value="250"/>
                   <Parameter name="repartition: max imbalance" type="double" value="1.1"/>
                   <Parameter name="repartition: remap parts" type="bool" value="true"/>
@@ -254,7 +254,7 @@
                 <ParameterList name="refmaxwell: 22list">
                   <Parameter name="use kokkos refactor" type="bool" value="false"/>
                   <Parameter name="verbosity" type="string" value="extreme"/>
-                  <Parameter name="coarse: max size" type="int" value="4000"/>
+                  <Parameter name="coarse: max size" type="int" value="2500"/>
                   <Parameter name="multigrid algorithm" type="string" value="unsmoothed"/>
 
                   <Parameter name="aggregation: type" type="string" value="uncoupled"/>
@@ -296,8 +296,8 @@
                   <Parameter name="repartition: enable" type="bool" value="true"/>
                   <Parameter name="repartition: partitioner" type="string" value="zoltan2"/>
                   <Parameter name="repartition: start level" type="int" value="1"/>
-                  <Parameter name="repartition: num of procs" type="int" value="256"/>
-                  <Parameter name="repartition: target rows per thread" type="int" value="8000"/>
+                  <Parameter name="repartition: num of procs" type="int" value="0"/>
+                  <Parameter name="repartition: target rows per thread" type="int" value="15000"/>
                   <Parameter name="repartition: min rows per thread" type="int" value="1000"/>
                   <Parameter name="repartition: max imbalance" type="double" value="1.1"/>
                   <Parameter name="repartition: remap parts" type="bool" value="true"/>
