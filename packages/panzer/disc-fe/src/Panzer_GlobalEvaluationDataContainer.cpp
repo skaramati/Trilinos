@@ -65,7 +65,7 @@ bool GlobalEvaluationDataContainer::containsDataObject(const std::string & key) 
   */
 Teuchos::RCP<GlobalEvaluationData> GlobalEvaluationDataContainer::getDataObject(const std::string & key) const
 {
-   std::unordered_map<std::string,Teuchos::RCP<GlobalEvaluationData> >::const_iterator itr;
+   std::map<std::string,Teuchos::RCP<GlobalEvaluationData> >::const_iterator itr;
    for(itr=begin();itr!=end();++itr) {
      if(itr->first==key) 
        return itr->second;
