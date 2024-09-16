@@ -49,7 +49,7 @@ using Teuchos::RCP;
 using Teuchos::rcp;
 
 namespace panzer_stk {
-
+#define BF_enabled
 CubeHexMeshFactory::CubeHexMeshFactory()
 {
    initializeWithDefaults();
@@ -86,11 +86,23 @@ Teuchos::RCP<STK_Interface> CubeHexMeshFactory::buildUncommitedMesh(stk::Paralle
    machRank_ = stk::parallel_machine_rank(parallelMach);
    machSize_ = stk::parallel_machine_size(parallelMach);
 
+   struct utsname buffer;
+   uname(&buffer);
+   std::string architecture(buffer.machine);
+   isHost = 1;
+   
+   #ifdef BF_enabled
+   if(architecture=="aarch64"){
+      isHost=0;
+   }
+   #endif
+   MPI_Allreduce(&isHost, &hostSize_, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
    if (xProcs_ == -1 && yProcs_ == -1 && zProcs_ == -1) {
      // copied from galeri
-     xProcs_ = yProcs_ = zProcs_ = Teuchos::as<int>(pow(Teuchos::as<double>(machSize_), 0.333334));
+     xProcs_ = yProcs_ = zProcs_ = Teuchos::as<int>(pow(Teuchos::as<double>(hostSize_), 0.333334));
 
-     if (xProcs_ * yProcs_ * zProcs_ != Teuchos::as<int>(machSize_))  {
+     if (xProcs_ * yProcs_ * zProcs_ != Teuchos::as<int>(hostSize_))  {
        // Simple method to find a set of processor assignments
        xProcs_ = yProcs_ = zProcs_ = 1;
 
@@ -98,7 +110,7 @@ Teuchos::RCP<STK_Interface> CubeHexMeshFactory::buildUncommitedMesh(stk::Paralle
        // processors.
        const int maxFactor = 50;
 
-       int ProcTemp = machSize_;
+       int ProcTemp = hostSize_;
        int factors[maxFactor];
        for (int jj = 0; jj < maxFactor; jj++) factors[jj] = 0;
        for (int jj = 2; jj < maxFactor; jj++) {
@@ -127,11 +139,11 @@ Teuchos::RCP<STK_Interface> CubeHexMeshFactory::buildUncommitedMesh(stk::Paralle
 
    } else if(xProcs_==-1) {
       // default x only decomposition
-      xProcs_ = machSize_;
+      xProcs_ = hostSize_;
       yProcs_ = 1;
       zProcs_ = 1;
    }
-   TEUCHOS_TEST_FOR_EXCEPTION(int(machSize_)!=xProcs_*yProcs_*zProcs_,std::logic_error,
+   TEUCHOS_TEST_FOR_EXCEPTION(int(hostSize_)!=xProcs_*yProcs_*zProcs_,std::logic_error,
                       "Cannot build CubeHexMeshFactory, the product of \"X Procs\", \"Y Procs\", and \"Z Procs\""
                       " must equal the number of processors.");
    procTuple_ = procRankToProcTuple(machRank_);
@@ -472,8 +484,10 @@ std::pair<panzer::GlobalOrdinal,panzer::GlobalOrdinal> CubeHexMeshFactory::deter
       nume  = minElements;
       start = extra*(minElements+1)+(xProcLoc-extra)*minElements;
    }
-
-   return std::make_pair(start+nXElems_*xBlock,nume);
+   if(isHost){
+      return std::make_pair(start+nXElems_*xBlock,nume);
+   }
+   return std::make_pair(0,0);
 }
 
 std::pair<panzer::GlobalOrdinal,panzer::GlobalOrdinal> CubeHexMeshFactory::determineYElemSizeAndStart(int yBlock,unsigned int size,unsigned int /* rank */) const
@@ -498,8 +512,10 @@ std::pair<panzer::GlobalOrdinal,panzer::GlobalOrdinal> CubeHexMeshFactory::deter
       nume  = minElements;
       start = extra*(minElements+1)+(yProcLoc-extra)*minElements;
    }
-
-   return std::make_pair(start+nYElems_*yBlock,nume);
+   if(isHost){
+      return std::make_pair(start+nYElems_*yBlock,nume);
+   }
+   return std::make_pair(0,0);
 }
 
 std::pair<panzer::GlobalOrdinal,panzer::GlobalOrdinal> CubeHexMeshFactory::determineZElemSizeAndStart(int zBlock,unsigned int size,unsigned int /* rank */) const
@@ -523,8 +539,10 @@ std::pair<panzer::GlobalOrdinal,panzer::GlobalOrdinal> CubeHexMeshFactory::deter
       nume  = minElements;
       start = extra*(minElements+1)+(zProcLoc-extra)*minElements;
    }
-
-   return std::make_pair(start+nZElems_*zBlock,nume);
+   if(isHost){
+      return std::make_pair(start+nZElems_*zBlock,nume);
+   }
+   return std::make_pair(0,0);
 }
 
 // this adds side entities only (does not inject them into side sets)

@@ -46,6 +46,7 @@
 #include <Panzer_Traits.hpp> // for panzer::GlobalOrdinal
 #include <Panzer_STK_MeshFactory.hpp>
 #include <Panzer_STK_Interface.hpp>
+#include <sys/utsname.h>
 
 namespace panzer_stk {
 
@@ -105,7 +106,9 @@ protected:
 
    mutable int xProcs_, yProcs_, zProcs_;
 
-   mutable unsigned int machRank_, machSize_;
+   mutable unsigned int machRank_, machSize_, hostSize_;
+
+   mutable int isHost;
 
    bool buildInterfaceSidesets_;
    bool buildSubcells_;
