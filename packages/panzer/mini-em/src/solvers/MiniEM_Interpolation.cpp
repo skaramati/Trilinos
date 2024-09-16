@@ -227,8 +227,8 @@ Teko::LinearOp buildInterpolation(const Teuchos::RCP<const panzer::LinearObjFact
     auto tp_interp_graph = rcp(new tp_graph(tp_rowmap, tp_colmap, numEntriesPerRow));
 
     { // This runs on host
-      Kokkos::View<LocalOrdinal**, HostSpace> hoElementLIDs_h("hoElementLIDs_h", hoElementLIDs_d.extent(0), hoCardinality);
-      Kokkos::View<LocalOrdinal**, HostSpace> loElementLIDs_h("loElementLIDs_h", loElementLIDs_d.extent(0), loCardinality);
+      Kokkos::View<LocalOrdinal**, HostSpace> hoElementLIDs_h("hoElementLIDs_h", hoElementLIDs_d.extent(0), hoElementLIDs_d.extent(1));
+      Kokkos::View<LocalOrdinal**, HostSpace> loElementLIDs_h("loElementLIDs_h", loElementLIDs_d.extent(0), loElementLIDs_d.extent(1));
       Kokkos::deep_copy(hoElementLIDs_h, hoElementLIDs_d);
       Kokkos::deep_copy(loElementLIDs_h, loElementLIDs_d);
 
