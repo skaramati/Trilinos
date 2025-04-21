@@ -89,6 +89,8 @@
 #include <MueLu_CreateXpetraPreconditioner.hpp>
 #include <MueLu_ML2MueLuParameterTranslator.hpp>
 
+#include <sys/utsname.h>
+#define BF_enabled
 #ifdef HAVE_MUELU_CUDA
 #include "cuda_profiler_api.h"
 #endif
@@ -655,6 +657,23 @@ void RefMaxwell<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
     doRebalancing = false;
     return;
   }
+  
+  int numProcsH = numProcs;
+  int numProcsBF = numProcs;
+  
+  #ifdef BF_enabled 
+    struct utsname buffer;
+    uname(&buffer);
+    std::string architecture(buffer.machine);
+    int isHost = 1;
+    
+    if(architecture=="aarch64"){
+      isHost=0;
+    }
+    MPI_Allreduce(&isHost, &numProcsH, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    numProcsBF = numProcs-numProcsH;
+  #endif
+  
 
 #ifdef HAVE_MPI
   if (doRebalancing) {
@@ -681,7 +700,11 @@ void RefMaxwell<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
       level.Request("number of partitions", repartheurFactory.get());
       repartheurFactory->Build(level);
       numProcsCoarseA11 = level.Get<int>("number of partitions", repartheurFactory.get());
-      numProcsCoarseA11 = std::min(numProcsCoarseA11, numProcs);
+      #ifndef BF_enabled
+        numProcsCoarseA11 = std::min(numProcsCoarseA11, numProcs);
+      #else
+        numProcsCoarseA11 = numProcsBF;
+      #endif
     }
 
     {
@@ -709,12 +732,13 @@ void RefMaxwell<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
       level.Request("number of partitions", repartheurFactory.get());
       repartheurFactory->Build(level);
       numProcsA22 = level.Get<int>("number of partitions", repartheurFactory.get());
-      numProcsA22 = std::min(numProcsA22, numProcs);
+      numProcsA22 = std::min(numProcsA22, numProcsH);
     }
 
     if (rebalanceStriding >= 1) {
       TEUCHOS_ASSERT(rebalanceStriding * numProcsCoarseA11 <= numProcs);
       TEUCHOS_ASSERT(rebalanceStriding * numProcsA22 <= numProcs);
+      #ifndef BF_enabled
       if (rebalanceStriding * (numProcsCoarseA11 + numProcsA22) > numProcs) {
         GetOStream(Warnings0) << solverName_ + "::compute(): Disabling striding = " << rebalanceStriding << ", since coarseA11 needs " << numProcsCoarseA11
                               << " procs and A22 needs " << numProcsA22 << " procs." << std::endl;
@@ -727,12 +751,16 @@ void RefMaxwell<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
         GetOStream(Warnings0) << solverName_ + "::compute(): Disabling striding = " << rebalanceStriding << ", since coarseA11 has no entries on at least one rank or Dk_1's domain map has no entries on at least one rank." << std::endl;
         rebalanceStriding = -1;
       }
+      
+      #endif
     }
 
     if ((numProcsCoarseA11 < 0) || (numProcsA22 < 0) || (numProcsCoarseA11 + numProcsA22 > numProcs)) {
       GetOStream(Warnings0) << solverName_ + "::compute(): Disabling rebalancing of subsolves, since partition heuristic resulted "
                             << "in undesirable number of partitions: " << numProcsCoarseA11 << ", " << numProcsA22 << std::endl;
-      doRebalancing = false;
+      #ifndef BF_enabled
+        doRebalancing = false;
+      #endif
     }
   }
 #else
@@ -967,10 +995,19 @@ void RefMaxwell<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
   repartParams.set("repartition: print partition distribution", precList11_.get<bool>("repartition: print partition distribution", false));
   repartParams.set("repartition: remap parts", precList11_.get<bool>("repartition: remap parts", true));
   if (rebalanceStriding >= 1) {
-    bool acceptPart = (SM_Matrix_->getDomainMap()->getComm()->getRank() % rebalanceStriding) == 0;
-    if (SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsCoarseA11 * rebalanceStriding)
-      acceptPart = false;
-    repartParams.set("repartition: remap accept partition", acceptPart);
+     
+    #ifndef BF_enabled
+      bool acceptPart = (SM_Matrix_->getDomainMap()->getComm()->getRank() % rebalanceStriding) == 0;
+      if (SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsCoarseA11 * rebalanceStriding)
+        acceptPart = false;
+      repartParams.set("repartition: remap accept partition", acceptPart);
+      #else
+        bool acceptPart = ((SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank()) % rebalanceStriding) == 0;
+        if (SM_Matrix_->getDomainMap()->getComm()->getSize()-1-SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsCoarseA11*rebalanceStriding)
+          acceptPart = false;
+        repartParams.set("repartition: remap accept partition", acceptPart);
+        
+      #endif
   }
   repartFactory->SetParameterList(repartParams);
   // repartFactory->SetFactory("number of partitions", repartheurFactory);
@@ -1105,12 +1142,21 @@ void RefMaxwell<Scalar, LocalOrdinal, GlobalOrdinal, Node>::build22Matrix(const 
       repartParams.set("repartition: print partition distribution", precList22_.get<bool>("repartition: print partition distribution", false));
       repartParams.set("repartition: remap parts", precList22_.get<bool>("repartition: remap parts", true));
       if (rebalanceStriding >= 1) {
-        bool acceptPart = ((SM_Matrix_->getDomainMap()->getComm()->getSize() - 1 - SM_Matrix_->getDomainMap()->getComm()->getRank()) % rebalanceStriding) == 0;
-        if (SM_Matrix_->getDomainMap()->getComm()->getSize() - 1 - SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsA22 * rebalanceStriding)
-          acceptPart = false;
-        if (acceptPart)
-          TEUCHOS_ASSERT(coarseA11_.is_null());
-        repartParams.set("repartition: remap accept partition", acceptPart);
+       
+        #ifndef BF_enabled
+          bool acceptPart = ((SM_Matrix_->getDomainMap()->getComm()->getSize() - 1 - SM_Matrix_->getDomainMap()->getComm()->getRank()) % rebalanceStriding) == 0;
+          if (SM_Matrix_->getDomainMap()->getComm()->getSize() - 1 - SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsA22 * rebalanceStriding)
+            acceptPart = false;
+          if (acceptPart)
+            TEUCHOS_ASSERT(coarseA11_.is_null());
+          repartParams.set("repartition: remap accept partition", acceptPart);
+        #else
+          bool acceptPart = (SM_Matrix_->getDomainMap()->getComm()->getRank() % rebalanceStriding) == 0;
+          if (SM_Matrix_->getDomainMap()->getComm()->getRank() >= numProcsA22*rebalanceStriding)
+              acceptPart = false;
+            repartParams.set("repartition: remap accept partition", acceptPart);
+          
+        #endif
       } else
         repartParams.set("repartition: remap accept partition", coarseA11_.is_null());
       repartFactory->SetParameterList(repartParams);
