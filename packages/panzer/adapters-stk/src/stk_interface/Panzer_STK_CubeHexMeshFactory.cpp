@@ -49,7 +49,7 @@ using Teuchos::RCP;
 using Teuchos::rcp;
 
 namespace panzer_stk {
-#define BF_enabled
+//#define BF_enabled
 CubeHexMeshFactory::CubeHexMeshFactory()
 {
    initializeWithDefaults();

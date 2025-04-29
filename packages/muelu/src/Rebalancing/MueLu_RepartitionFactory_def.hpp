@@ -77,7 +77,7 @@
 #include "MueLu_Monitor.hpp"
 #include "MueLu_PerfUtils.hpp"
 
-#define BF_enabled
+//#define BF_enabled
 
 namespace MueLu {
 

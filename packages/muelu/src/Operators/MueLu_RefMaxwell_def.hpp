@@ -90,7 +90,7 @@
 #include <MueLu_ML2MueLuParameterTranslator.hpp>
 
 #include <sys/utsname.h>
-#define BF_enabled
+//#define BF_enabled
 #ifdef HAVE_MUELU_CUDA
 #include "cuda_profiler_api.h"
 #endif
@@ -2227,7 +2227,7 @@ void RefMaxwell<Scalar, LocalOrdinal, GlobalOrdinal, Node>::applyInverseAdditive
       }
     }
   }
-
+  MPI_Barrier(MPI_COMM_WORLD);
   {
     RCP<Teuchos::TimeMonitor> tmSubSolves = getTimer("subsolves");
 
